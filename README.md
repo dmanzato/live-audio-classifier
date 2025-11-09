@@ -4,7 +4,7 @@
 Real-time environmental sound classification with **PyTorch**: microphone or dataset playback → **log-mel spectrogram** → **CNN** → **live Top-K predictions** (with a clean UI and keyboard controls).
 
 [![CI](https://img.shields.io/github/actions/workflow/status/dmanzato/live-audio-classifier/ci.yml?branch=main)](../../actions)
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-%F0%9F%AA%80-orange)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
@@ -85,7 +85,7 @@ pip install -r requirements.txt
 python demo_shapes.py
 ```
 
-> Want a one-liner developer flow? Add the Makefile provided in the Issues/PR template:
+> Want a one-liner developer flow? Use the included Makefile:
 > `make setup`, `make train`, `make predict FILE=...`, `make stream DEVICE="..."`.
 
 ---
@@ -227,7 +227,7 @@ Minimal shape verification script. Tests the pipeline end-to-end: waveform → l
 ---
 
 ## Examples
- 
+
 See the [examples/](examples/) directory for:
 - Training scripts with different configurations
 - Inference examples
