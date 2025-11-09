@@ -1,0 +1,23 @@
+# Core ML libraries
+torch>=2.0.0
+torchaudio>=2.0.0
+torchvision>=0.15.0
+numpy>=1.21.0
+
+# Visualization
+matplotlib>=3.5.0
+
+# Data processing
+pandas>=1.3.0
+scipy>=1.7.0
+
+# ML utilities
+scikit-learn>=1.0.0
+
+# Audio I/O
+soundfile>=0.10.0
+sounddevice>=0.4.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
