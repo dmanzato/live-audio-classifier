@@ -85,6 +85,13 @@ pip install -r requirements.txt
 python demo_shapes.py
 ```
 
+> **CLI Commands**: After installation, you can use the entry-point commands:
+> - `live-audio-train` (instead of `python train.py`)
+> - `live-audio-predict` (instead of `python predict.py`)
+> - `live-audio-stream` (instead of `python scripts/stream_infer.py`)
+>
+> These work without setting `PYTHONPATH=.`
+
 > Want a one-liner developer flow? Use the included Makefile:
 > `make setup`, `make train`, `make predict FILE=...`, `make stream DEVICE="..."`.
 
@@ -171,6 +178,10 @@ python predict.py --wav my_clip.wav   --data_root /path/to/UrbanSound8K
 Real-time microphone input with **live spectrogram** and **Top-K predictions**.
 
 ```bash
+# Using the CLI command (after pip install)
+live-audio-stream   --data_root /path/to/UrbanSound8K   --checkpoint artifacts/best_model.pt   --model smallcnn   --win_sec 4.0   --hop_sec 0.25   --topk 5
+
+# Or using Python directly
 python scripts/stream_infer.py   --data_root /path/to/UrbanSound8K   --checkpoint artifacts/best_model.pt   --model smallcnn   --win_sec 4.0   --hop_sec 0.25   --topk 5
 ```
 
@@ -182,7 +193,16 @@ python scripts/stream_infer.py   --data_root /path/to/UrbanSound8K   --checkpoin
 - **EMA smoothing** of predictions  
 - Configurable refresh rate
 
-Use `--device` to pick a specific microphone by index or substring.
+**Device Selection**
+
+List available audio input devices:
+```bash
+live-audio-stream --list-devices
+# or
+python scripts/stream_infer.py --list-devices
+```
+
+Use `--device <index>` or `--device '<substring>'` to pick a specific microphone.
 
 ---
 

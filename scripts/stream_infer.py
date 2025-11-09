@@ -3,30 +3,33 @@
 Live streaming inference (microphone → log-mel → model) with a live spectrogram
 and Top-K predictions. The Top-1 prediction is shown in the figure title.
 
-USAGE EXAMPLES (from repo root):
+USAGE EXAMPLES:
+  # List available audio input devices
+  live-audio-stream --list-devices
+  # or: python scripts/stream_infer.py --list-devices
+
   # Minimal (uses default device, model, and checkpoint path)
-  PYTHONPATH=. python scripts/stream_infer.py \
-      --data_root ../data/UrbanSound8K \
+  live-audio-stream \
+      --data_root /path/to/UrbanSound8K \
       --checkpoint artifacts/best_model.pt
 
   # Pick a microphone by substring and faster refresh
-  PYTHONPATH=. python scripts/stream_infer.py \
-      --data_root ../data/UrbanSound8K \
+  live-audio-stream \
+      --data_root /path/to/UrbanSound8K \
       --checkpoint artifacts/best_model.pt \
       --device "MacBook Pro Microphone" \
       --hop_sec 0.20
 
   # Tweak spectrogram auto-gain percentiles
-  PYTHONPATH=. python scripts/stream_infer.py \
-      --data_root ../data/UrbanSound8K \
+  live-audio-stream \
+      --data_root /path/to/UrbanSound8K \
       --checkpoint artifacts/best_model.pt \
       --spec_pmin 3 --spec_pmax 97
 
 TIPS
-- If Python imports the wrong `transforms` package, run with PYTHONPATH set:
-    export PYTHONPATH=.
-- To list available audio devices:
-    python -c "import sounddevice as sd; print(sd.query_devices())"
+- After pip install, use the `live-audio-stream` command (no PYTHONPATH needed)
+- Use --list-devices to see available microphones
+- Use --device <index> or --device '<substring>' to select a specific device
 """
 
 import argparse
@@ -133,6 +136,8 @@ def main():
                     help="UI/prediction refresh interval (seconds). [default: 0.25]")
     ap.add_argument("--device", type=str, default=None,
                     help="Microphone device index or substring to match (e.g., 'MacBook Pro Microphone').")
+    ap.add_argument("--list-devices", action="store_true",
+                    help="List available audio input devices and exit.")
 
     # Log-mel parameters (must match training)
     ap.add_argument("--n_mels", type=int, default=64, help="Number of mel bins. [default: 64]")
@@ -162,6 +167,20 @@ def main():
     ap.add_argument("--spec_debug", action="store_true",
                     help="Print per-frame percentile ranges to diagnose flat-color issues.")
     args = ap.parse_args()
+
+    # Handle --list-devices flag
+    if args.list_devices:
+        print("Available audio input devices:")
+        print("=" * 80)
+        devices = sd.query_devices()
+        for i, device in enumerate(devices):
+            if device['max_input_channels'] > 0:
+                print(f"  [{i}] {device['name']}")
+                print(f"      Channels: {device['max_input_channels']}, "
+                      f"Sample rate: {device['default_samplerate']} Hz")
+        print("=" * 80)
+        print(f"\nUse --device <index> or --device '<substring>' to select a device.")
+        return
 
     # Device (CUDA/MPS/CPU for model)
     device = get_device()
