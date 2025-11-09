@@ -74,30 +74,77 @@ live-audio-classifier/
 
 ---
 
-## Quickstart
+## Installation
+
+### Option 1: Install as a package (recommended for CLI commands)
+
+Install the package in development mode to get CLI entry points:
 
 ```bash
-# 1) Create a venv and install deps
+# Create virtual environment
 python -m venv .venv && source .venv/bin/activate
+
+# Install package and dependencies
+pip install -e .
+
+# Now you can use CLI commands:
+live-audio-train --help
+live-audio-predict --help
+live-audio-stream --help
+```
+
+This installs the package and makes the CLI commands (`live-audio-train`, `live-audio-predict`, `live-audio-stream`) available system-wide in your virtual environment.
+
+### Option 2: Install dependencies only
+
+If you prefer to run scripts directly with Python:
+
+```bash
+# Create virtual environment
+python -m venv .venv && source .venv/bin/activate
+
+# Install dependencies only
 pip install -r requirements.txt
 
-# 2) Verify shapes end-to-end
+# Run scripts with Python (requires PYTHONPATH=. or running from repo root)
+python train.py --help
+python predict.py --help
+python scripts/stream_infer.py --help
+```
+
+---
+
+## Quickstart
+
+After installation, verify the setup:
+
+```bash
+# Verify shapes end-to-end
 python demo_shapes.py
 ```
 
-> **CLI Commands**: After installation, you can use the entry-point commands:
-> - `live-audio-train` (instead of `python train.py`)
-> - `live-audio-predict` (instead of `python predict.py`)
-> - `live-audio-stream` (instead of `python scripts/stream_infer.py`)
->
-> These work without setting `PYTHONPATH=.`
+**Using CLI Commands** (if installed as package):
+```bash
+live-audio-train --data_root /path/to/UrbanSound8K --epochs 1 --model smallcnn
+live-audio-predict --wav /path/to/audio.wav --data_root /path/to/UrbanSound8K
+live-audio-stream --list-devices
+```
 
-> Want a one-liner developer flow? Use the included Makefile:
+**Using Python directly** (if dependencies only):
+```bash
+python train.py --data_root /path/to/UrbanSound8K --epochs 1 --model smallcnn
+python predict.py --wav /path/to/audio.wav --data_root /path/to/UrbanSound8K
+python scripts/stream_infer.py --list-devices
+```
+
+> **Tip**: Want a one-liner developer flow? Use the included Makefile:
 > `make setup`, `make train`, `make predict FILE=...`, `make stream DEVICE="..."`.
 
 ---
 
 ## Train on UrbanSound8K
+
+> **Note**: If you installed the package (`pip install -e .`), you can use `live-audio-train` instead of `python train.py`.
 
 1) Download **UrbanSound8K** and point `--data_root` to its root directory.
 
@@ -132,6 +179,8 @@ After each epoch you'll get:
 ---
 
 ## Inference on your own WAVs
+
+> **Note**: If you installed the package (`pip install -e .`), you can use `live-audio-predict` instead of `python predict.py`.
 
 ```bash
 # Uses artifacts/best_model.pt by default
