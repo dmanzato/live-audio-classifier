@@ -27,4 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive dataset browser with audio playback
 - Robust audio I/O using soundfile/sounddevice
 - Comprehensive command-line interface for all scripts
+- CLI entry points (`live-audio-train`, `live-audio-predict`, `live-audio-stream`)
+- Device listing utility (`--list-devices` flag)
+- Continuous Integration (CI) workflow with automated testing
+- Comprehensive test suite with 90%+ coverage on core modules
 
