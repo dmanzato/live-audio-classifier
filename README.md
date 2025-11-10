@@ -39,6 +39,7 @@ This project provides a complete pipeline for **environmental sound classificati
 live-audio-classifier/
 ├── train.py              # Main training script
 ├── predict.py            # Single-file inference
+├── evaluate.py           # Model evaluation and comparison
 ├── demo_shapes.py        # Shape verification demo
 ├── models/
 │   └── small_cnn.py      # CNN architecture
@@ -46,11 +47,17 @@ live-audio-classifier/
 │   └── urbansound8k.py   # Dataset loader
 ├── transforms/
 │   └── audio.py          # Audio preprocessing & augmentation
+├── utils/
+│   ├── models.py         # Shared model building utilities
+│   ├── class_map.py      # Class map loading/saving utilities
+│   ├── device.py         # Device selection utilities
+│   └── logging.py        # Logging configuration
 ├── scripts/
 │   ├── stream_infer.py   # Live mic inference
 │   ├── vis_dataset.py    # Interactive dataset viewer
-│   └── record_wav.py     # Audio recording utility
-├── artifacts/            # Training outputs (models, confusion matrices)
+│   ├── record_wav.py     # Audio recording utility
+│   └── gen_demo_gif.py   # Demo GIF generator
+├── artifacts/            # Training outputs (models, confusion matrices, class_map.json)
 ├── pred_artifacts/       # Prediction outputs (spectrograms)
 └── requirements.txt      # Dependencies
 ```
@@ -313,28 +320,32 @@ python scripts/vis_dataset.py   --data_root /path/to/UrbanSound8K   --folds 10  
 
 ## Scripts Overview
 
-### `train.py`
+### Main Scripts
+
+#### `train.py`
 Main training script. Trains models on UrbanSound8K with fold-based train/val splits. Supports both SmallCNN and ResNet18 with optional SpecAugment.
 
-### `predict.py`
+#### `predict.py`
 Single-file inference. Classifies a WAV file and outputs Top-K predictions with probabilities. Saves spectrogram visualization.
 
-### `scripts/stream_infer.py`
-Live streaming inference from microphone. Real-time predictions with live spectrogram and prediction bars. Features EMA smoothing and auto-scaling spectrogram colors.
-
-### `scripts/vis_dataset.py`
-Interactive dataset browser. Shows ground truth vs predictions, spectrograms, and supports audio playback with keyboard navigation.
-
-### `scripts/record_wav.py`
-Audio recording utility. Records from microphone and saves as WAV file (mono, 16kHz by default).
-
-### `demo_shapes.py`
-Minimal shape verification script. Tests the pipeline end-to-end: waveform → log-mel → model to verify tensor shapes. Useful for debugging shape mismatches and verifying the preprocessing pipeline works correctly before training. Generates a synthetic sine wave, converts it to a log-mel spectrogram, and runs it through the model to confirm all tensor dimensions are correct.
-
-### `evaluate.py`
+#### `evaluate.py`
 Model evaluation and comparison script. Evaluates trained models on a test set and computes accuracy, F1 scores, and per-class metrics. Can compare multiple models side-by-side.
 
-### `scripts/gen_demo_gif.py`
+#### `demo_shapes.py`
+Minimal shape verification script. Tests the pipeline end-to-end: waveform → log-mel → model to verify tensor shapes. Useful for debugging shape mismatches and verifying the preprocessing pipeline works correctly before training. Generates a synthetic sine wave, converts it to a log-mel spectrogram, and runs it through the model to confirm all tensor dimensions are correct.
+
+### Scripts Directory (`scripts/`)
+
+#### `scripts/stream_infer.py`
+Live streaming inference from microphone. Real-time predictions with live spectrogram and prediction bars. Features EMA smoothing and auto-scaling spectrogram colors.
+
+#### `scripts/vis_dataset.py`
+Interactive dataset browser. Shows ground truth vs predictions, spectrograms, and supports audio playback with keyboard navigation.
+
+#### `scripts/record_wav.py`
+Audio recording utility. Records from microphone and saves as WAV file (mono, 16kHz by default).
+
+#### `scripts/gen_demo_gif.py`
 Generates an animated GIF for the README showing spectrograms and predictions. Processes multiple audio files and creates a frame-by-frame animation with Top-K predictions. Useful for creating demo visualizations.
 
 ---
