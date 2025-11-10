@@ -12,65 +12,14 @@ from sklearn.metrics import f1_score, confusion_matrix
 import numpy as np
 import matplotlib.pyplot as plt
 
-from models.small_cnn import SmallCNN
 from datasets.urbansound8k import UrbanSound8K
 from transforms.audio import SpecAugment
 from utils.logging import setup_logging, get_logger
 from utils.device import get_device, get_device_name
-
-try:
-    from torchvision.models import resnet18
-except ImportError:
-    resnet18 = None
+from utils.models import build_model
+from utils.class_map import save_class_map
 
 logger = get_logger("train")
-
-
-def build_model(model_name: str, num_classes: int) -> nn.Module:
-    """
-    Build a model architecture.
-    
-    Args:
-        model_name: Name of the model architecture ('smallcnn' or 'resnet18').
-        num_classes: Number of output classes.
-    
-    Returns:
-        Initialized model.
-    
-    Raises:
-        RuntimeError: If resnet18 is requested but torchvision is not available.
-        ValueError: If model_name is not recognized.
-    """
-    model_name_lower = model_name.lower()
-    logger.info(f"Building model: {model_name_lower} with {num_classes} classes")
-    
-    if model_name_lower == "smallcnn":
-        return SmallCNN(n_classes=num_classes)
-    elif model_name_lower == "resnet18":
-        if resnet18 is None:
-            raise RuntimeError(
-                "torchvision not available; cannot use resnet18. "
-                "Install with: pip install torchvision"
-            )
-        m = resnet18(weights=None)
-        # Adapt first conv to 1-channel input
-        if m.conv1.in_channels != 1:
-            m.conv1 = nn.Conv2d(
-                1, m.conv1.out_channels,
-                kernel_size=m.conv1.kernel_size,
-                stride=m.conv1.stride,
-                padding=m.conv1.padding,
-                bias=False
-            )
-        # Adaptive avgpool is already present; set classifier
-        m.fc = nn.Linear(m.fc.in_features, num_classes)
-        logger.info("ResNet18 adapted for 1-channel input")
-        return m
-    else:
-        raise ValueError(
-            f"Unknown model: {model_name}. "
-            f"Supported models: 'smallcnn', 'resnet18'"
-        )
 
 
 def evaluate(model: nn.Module, loader: DataLoader, device: torch.device, num_classes: int):
@@ -251,6 +200,13 @@ def main():
     except Exception as e:
         logger.error(f"Error building model: {e}", exc_info=True)
         sys.exit(1)
+    
+    # Save class map for inference scripts
+    try:
+        idx2name = [train_ds.idx2name[i] for i in range(num_classes)]
+        save_class_map(artifacts_dir, idx2name)
+    except Exception as e:
+        logger.warning(f"Could not save class map: {e}")
     
     opt = optim.Adam(model.parameters(), lr=args.lr)
     loss_fn = nn.CrossEntropyLoss()

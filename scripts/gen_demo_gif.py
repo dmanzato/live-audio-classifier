@@ -40,65 +40,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # local modules
 from transforms.audio import get_mel_transform, wav_to_logmel
-from models.small_cnn import SmallCNN
-
-# Optional torchvision resnet18
-try:
-    from torchvision.models import resnet18
-except Exception:
-    resnet18 = None
+from utils.models import build_model
+from utils.class_map import load_class_map
 
 # File I/O (no torchcodec required)
 import soundfile as sf
 from scipy.signal import resample_poly
-
-
-def build_model(name: str, num_classes: int):
-    name = name.lower()
-    if name == "smallcnn":
-        return SmallCNN(n_classes=num_classes)
-    elif name == "resnet18":
-        if resnet18 is None:
-            raise RuntimeError("torchvision is not available for resnet18.")
-        m = resnet18(weights=None)
-        # adapt first conv to 1 channel
-        if m.conv1.in_channels != 1:
-            m.conv1 = nn.Conv2d(
-                1, m.conv1.out_channels,
-                kernel_size=m.conv1.kernel_size,
-                stride=m.conv1.stride,
-                padding=m.conv1.padding,
-                bias=False
-            )
-        m.fc = nn.Linear(m.fc.in_features, num_classes)
-        return m
-    else:
-        raise ValueError(f"Unknown model: {name}")
-
-
-def load_idx2name(data_root: Path):
-    """
-    Try to infer class names from UrbanSound8K metadata if present.
-    Fallback to 10 generic labels if not found.
-    """
-    import pandas as pd
-    # Typical locations
-    meta1 = data_root / "UrbanSound8K.csv"
-    meta2 = data_root / "metadata" / "UrbanSound8K.csv"
-    if meta1.exists():
-        meta_path = meta1
-    elif meta2.exists():
-        meta_path = meta2
-    else:
-        # fallback
-        return [f"class_{i}" for i in range(10)]
-    df = pd.read_csv(meta_path)
-    mapping = (
-        df.loc[:, ["classID", "class"]]
-          .drop_duplicates(subset=["classID"])
-          .sort_values("classID")
-    )
-    return mapping["class"].tolist()
 
 
 def read_mono_resampled(path: Path, target_sr: int, duration: float):
@@ -138,7 +85,12 @@ def main():
     args = ap.parse_args()
 
     data_root = Path(args.data_root)
-    idx2name = load_idx2name(data_root)
+    # Use load_class_map with fallback for missing files
+    try:
+        idx2name = load_class_map(data_root, Path("artifacts"))
+    except FileNotFoundError:
+        # Fallback to generic class names if metadata not found
+        idx2name = [f"class_{i}" for i in range(10)]
     num_classes = len(idx2name)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

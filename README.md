@@ -142,6 +142,43 @@ python scripts/stream_infer.py --list-devices
 
 ---
 
+## Makefile Shortcuts
+
+The project includes a `Makefile` with convenient shortcuts for common tasks. After running `make setup`, you can use:
+
+```bash
+# Setup virtual environment and install dependencies
+make setup
+
+# Train a model (uses default folds and parameters)
+make train
+
+# Run inference on a WAV file
+make predict FILE=/path/to/audio.wav
+
+# Start live streaming inference
+make stream
+# Or with a specific device:
+make stream DEVICE="MacBook Pro Microphone"
+
+# Visualize dataset samples
+make vis
+# Or with specific folds:
+make vis FOLDS=1,2,3
+
+# Generate demo GIF for README
+make demo
+
+# Run code quality checks
+make lint      # Run ruff linter
+make test      # Run pytest
+make typecheck # Run mypy type checker
+```
+
+All Makefile targets activate the virtual environment automatically. See `Makefile` for default parameters and customization options.
+
+---
+
 ## Train on UrbanSound8K
 
 > **Note**: If you installed the package (`pip install -e .`), you can use `live-audio-train` instead of `python train.py`.
@@ -174,7 +211,8 @@ After each epoch you'll get:
 
 - Macro-F1 on validation  
 - A saved confusion matrix under `artifacts/confusion_matrix_epochX.png`  
-- Best model checkpoint: `artifacts/best_model.pt`
+- Best model checkpoint: `artifacts/best_model.pt`  
+- Class map file: `artifacts/class_map.json` (saved automatically for inference scripts)
 
 ---
 
@@ -188,7 +226,7 @@ python predict.py   --wav /path/to/your_sound.wav   --data_root /path/to/UrbanSo
 ```
 
 - Saves `pred_artifacts/spectrogram.png`  
-- If `artifacts/class_map.json` exists it will be used; otherwise class names are read from UrbanSound8K metadata.
+- Class names are loaded from `artifacts/class_map.json` (created automatically by `train.py`), or fallback to UrbanSound8K metadata CSV if not found.
 
 ---
 
@@ -291,7 +329,13 @@ Interactive dataset browser. Shows ground truth vs predictions, spectrograms, an
 Audio recording utility. Records from microphone and saves as WAV file (mono, 16kHz by default).
 
 ### `demo_shapes.py`
-Minimal shape verification script. Tests the pipeline end-to-end: waveform → log-mel → model to verify tensor shapes.
+Minimal shape verification script. Tests the pipeline end-to-end: waveform → log-mel → model to verify tensor shapes. Useful for debugging shape mismatches and verifying the preprocessing pipeline works correctly before training. Generates a synthetic sine wave, converts it to a log-mel spectrogram, and runs it through the model to confirm all tensor dimensions are correct.
+
+### `evaluate.py`
+Model evaluation and comparison script. Evaluates trained models on a test set and computes accuracy, F1 scores, and per-class metrics. Can compare multiple models side-by-side.
+
+### `scripts/gen_demo_gif.py`
+Generates an animated GIF for the README showing spectrograms and predictions. Processes multiple audio files and creates a frame-by-frame animation with Top-K predictions. Useful for creating demo visualizations.
 
 ---
 
@@ -313,6 +357,56 @@ This project also provides **real-time microphone streaming**, **live spectrogra
 
 ```
 audio → STFT → Mel → Log → CNN → Top-K + UI
+```
+
+---
+
+## Model Evaluation and Comparison
+
+Compare model performance on a test set:
+
+```bash
+# Evaluate both models (requires trained checkpoints)
+live-audio-evaluate \
+    --data_root /path/to/UrbanSound8K \
+    --test_folds 10 \
+    --checkpoint_smallcnn artifacts/best_model_smallcnn.pt \
+    --checkpoint_resnet18 artifacts/best_model_resnet18.pt \
+    --output results.csv
+```
+
+Or evaluate a single model:
+
+```bash
+live-audio-evaluate \
+    --data_root /path/to/UrbanSound8K \
+    --models smallcnn \
+    --checkpoint_smallcnn artifacts/best_model.pt
+```
+
+**Metrics reported:**
+- **Accuracy**: Overall classification accuracy
+- **Macro F1**: Average F1 score across all classes (unweighted)
+- **Weighted F1**: Average F1 score weighted by class support
+- **Per-class F1**: F1 score for each individual class
+- **Model parameters**: Number of trainable parameters
+
+The script outputs a comparison table when evaluating multiple models, showing which performs better.
+
+**Note**: To compare both models, train each separately and save with different checkpoint names:
+```bash
+# Train SmallCNN
+live-audio-train --data_root /path/to/UrbanSound8K --model smallcnn --epochs 10
+mv artifacts/best_model.pt artifacts/best_model_smallcnn.pt
+
+# Train ResNet18
+live-audio-train --data_root /path/to/UrbanSound8K --model resnet18 --epochs 10
+mv artifacts/best_model.pt artifacts/best_model_resnet18.pt
+
+# Compare
+live-audio-evaluate --data_root /path/to/UrbanSound8K \
+    --checkpoint_smallcnn artifacts/best_model_smallcnn.pt \
+    --checkpoint_resnet18 artifacts/best_model_resnet18.pt
 ```
 
 ---

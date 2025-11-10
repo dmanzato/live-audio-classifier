@@ -35,6 +35,7 @@ setup(
             "live-audio-train=train:main",
             "live-audio-predict=predict:main",
             "live-audio-stream=scripts.stream_infer:main",
+            "live-audio-evaluate=evaluate:main",
         ],
     },
 )

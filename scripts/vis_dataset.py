@@ -44,8 +44,8 @@ import torchaudio  # still used by your dataset; playback loader doesn't rely on
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from datasets.urbansound8k import UrbanSound8K
-from models.small_cnn import SmallCNN
 from utils.device import get_device
+from utils.models import build_model
 
 # Playback + file I/O backends (no torchcodec needed)
 try:
@@ -55,37 +55,6 @@ except Exception:
 
 import soundfile as sf
 from scipy.signal import resample_poly
-
-try:
-    from torchvision.models import resnet18
-except Exception:
-    resnet18 = None
-
-
-# -----------------------------
-# Utilities
-# -----------------------------
-def build_model(name: str, num_classes: int):
-    if name.lower() == "smallcnn":
-        return SmallCNN(n_classes=num_classes)
-    elif name.lower() == "resnet18":
-        if resnet18 is None:
-            raise RuntimeError("torchvision not available; cannot load resnet18.")
-        m = resnet18(weights=None)
-        # Convert first conv to handle 1 channel instead of 3
-        if m.conv1.in_channels != 1:
-            m.conv1 = nn.Conv2d(
-                1,
-                m.conv1.out_channels,
-                kernel_size=m.conv1.kernel_size,
-                stride=m.conv1.stride,
-                padding=m.conv1.padding,
-                bias=False,
-            )
-        m.fc = nn.Linear(m.fc.in_features, num_classes)
-        return m
-    else:
-        raise ValueError(f"Unknown model name {name}")
 
 
 def load_id_to_name(data_root: Path):

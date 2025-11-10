@@ -33,7 +33,6 @@ TIPS
 """
 
 import argparse
-import json
 import os
 import sys
 import time
@@ -45,80 +44,14 @@ import matplotlib.colors as mcolors
 import numpy as np
 import sounddevice as sd
 import torch
-import torch.nn as nn
 
 # Ensure local project modules resolve over any similarly named pip packages
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from transforms.audio import get_mel_transform, wav_to_logmel  # your local transforms
-from models.small_cnn import SmallCNN
 from utils.device import get_device
-
-try:
-    from torchvision.models import resnet18
-except Exception:
-    resnet18 = None
-
-
-# -----------------------------
-# Model helpers
-# -----------------------------
-def build_model(model_name: str, num_classes: int) -> nn.Module:
-    mname = model_name.lower()
-    if mname == "smallcnn":
-        return SmallCNN(n_classes=num_classes)
-    elif mname == "resnet18":
-        if resnet18 is None:
-            raise RuntimeError("torchvision not available; cannot use resnet18")
-        m = resnet18(weights=None)
-        # adapt first conv to 1-channel input (log-mel)
-        if m.conv1.in_channels != 1:
-            m.conv1 = nn.Conv2d(
-                1, m.conv1.out_channels,
-                kernel_size=m.conv1.kernel_size,
-                stride=m.conv1.stride,
-                padding=m.conv1.padding,
-                bias=False
-            )
-        m.fc = nn.Linear(m.fc.in_features, num_classes)
-        return m
-    else:
-        raise ValueError(f"Unknown model: {model_name}")
-
-
-def load_idx2name(data_root: Path, artifacts_dir: Path) -> list[str]:
-    """
-    Load label names in index order. Priority:
-    1) artifacts/class_map.json with key 'idx2name' (list or dict)
-    2) UrbanSound8K.csv to derive classID->name and sort by classID
-    """
-    cm = artifacts_dir / "class_map.json"
-    if cm.exists():
-        with open(cm, "r") as f:
-            data = json.load(f)
-        if isinstance(data.get("idx2name"), list):
-            return data["idx2name"]
-        if isinstance(data.get("idx2name"), dict):
-            items = sorted(((int(k), v) for k, v in data["idx2name"].items()), key=lambda kv: kv[0])
-            return [v for _, v in items]
-
-    # Fallback: read metadata CSV
-    import pandas as pd
-    meta1 = data_root / "UrbanSound8K.csv"
-    meta2 = data_root / "metadata" / "UrbanSound8K.csv"
-    if meta1.exists():
-        meta_path = meta1
-    elif meta2.exists():
-        meta_path = meta2
-    else:
-        raise FileNotFoundError("UrbanSound8K.csv not found under data_root or data_root/metadata")
-    df = pd.read_csv(meta_path)
-    mapping = (
-        df.loc[:, ["classID", "class"]]
-          .drop_duplicates(subset=["classID"])
-          .sort_values("classID")
-    )
-    return mapping["class"].tolist()
+from utils.models import build_model
+from utils.class_map import load_class_map
 
 
 # -----------------------------
@@ -186,7 +119,7 @@ def main():
     device = get_device()
 
     # Load labels
-    idx2name = load_idx2name(Path(args.data_root), Path("artifacts"))
+    idx2name = load_class_map(Path(args.data_root), Path("artifacts"))
     num_classes = len(idx2name)
 
     # Build & load model

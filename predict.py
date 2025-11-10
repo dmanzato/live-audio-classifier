@@ -1,59 +1,14 @@
 import argparse
-import json
 from pathlib import Path
 import torch
-import torch.nn as nn
 import numpy as np
 import torchaudio
 import soundfile as sf
 import matplotlib.pyplot as plt
 from transforms.audio import get_mel_transform, wav_to_logmel
-from models.small_cnn import SmallCNN
 from utils.device import get_device
-try:
-    from torchvision.models import resnet18
-except Exception:
-    resnet18 = None
-
-def build_model(model_name: str, num_classes: int):
-    if model_name.lower() == "smallcnn":
-        return SmallCNN(n_classes=num_classes)
-    elif model_name.lower() == "resnet18":
-        if resnet18 is None:
-            raise RuntimeError("torchvision not available; cannot use resnet18")
-        m = resnet18(weights=None)
-        if m.conv1.in_channels != 1:
-            m.conv1 = nn.Conv2d(1, m.conv1.out_channels, kernel_size=m.conv1.kernel_size,
-                                stride=m.conv1.stride, padding=m.conv1.padding, bias=False)
-        m.fc = nn.Linear(m.fc.in_features, num_classes)
-        return m
-    else:
-        raise ValueError(f"Unknown model: {model_name}")
-
-def load_class_map(data_root: Path, artifacts_dir: Path):
-    cm1 = artifacts_dir / "class_map.json"
-    if cm1.exists():
-        with open(cm1, "r") as f:
-            data = json.load(f)
-        if isinstance(data.get("idx2name"), list):
-            return data["idx2name"]
-        elif isinstance(data.get("idx2name"), dict):
-            idx2name = [v for k, v in sorted(data["idx2name"].items(), key=lambda kv: int(kv[0]))]
-            return idx2name
-
-    import pandas as pd
-    meta1 = data_root / "UrbanSound8K.csv"
-    meta2 = data_root / "metadata" / "UrbanSound8K.csv"
-    if meta1.exists():
-        meta_path = meta1
-    elif meta2.exists():
-        meta_path = meta2
-    else:
-        raise FileNotFoundError("Could not find UrbanSound8K.csv under data_root or data_root/metadata.")
-    df = pd.read_csv(meta_path)
-    id_to_name = df.drop_duplicates(subset=["classID"])[["classID", "class"]].sort_values("classID")
-    idx2name = id_to_name["class"].tolist()
-    return idx2name
+from utils.models import build_model
+from utils.class_map import load_class_map
 
 def topk_probs(logits: torch.Tensor, k: int = 5):
     probs = torch.softmax(logits, dim=-1)
